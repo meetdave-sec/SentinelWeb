@@ -1,0 +1,15 @@
+{
+  "name": "sentinelweb",
+  "version": "1.0.0",
+  "description": "SentinelWeb is a security engineering project demonstrating real-world web application vulnerabilities and their remediation based on OWASP Top 10. It includes a vulnerable environment for attack simulation and a hardened version showcasing secure coding, mitigation techniques, and defensive architecture improvements.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^5.2.1"
+  }
+}
