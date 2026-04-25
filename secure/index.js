@@ -1,6 +1,7 @@
+const path = require("path");
 const express = require("express");
 const morgan = require("morgan");
-const path = require("path");
+const db = require("./secure-db");
 
 const app = express();
 const PORT = 4000; 
