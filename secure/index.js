@@ -26,6 +26,11 @@ app.use(
   }),
 );
 
+function requireLogin(req, res, next) {
+  if (!req.session.userId) return res.redirect("/login");
+  next();
+}
+
 // --- Basic Routes ---
 
 app.get("/", (req, res) => {
@@ -70,16 +75,19 @@ app.post("/login", (req, res) => {
   );
 });
 
-app.get("/dashboard", (req, res) => {
-  if (!req.session.userId) {
-    return res.status(401).send("Not logged in");
-  }
-
+app.get("/dashboard", requireLogin, (req, res) => {
   res.send(`
     <h2>Dashboard</h2>
     <p>Welcome, ${req.session.username}</p>
-    <p>You are logged in via session.</p>
+    <a href="/logout">Logout</a>
   `);
+});
+
+app.get("/logout", (req, res) => {
+  req.session.destroy(err => {
+    if (err) return res.status(500).send("Logut failed");
+    return res.redirect("/login");
+  });
 });
 
 app.listen(PORT, () => {
