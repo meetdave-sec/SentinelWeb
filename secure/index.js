@@ -3,6 +3,7 @@ const express = require("express");
 const morgan = require("morgan");
 const db = require("./secure-db");
 const bcrypt = require("bcryptjs");
+const session = require("express-session");
 
 const app = express();
 const PORT = 4000;
@@ -13,6 +14,17 @@ app.use(morgan("dev"));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, "public")));
 app.use(express.json());
+
+app.use(
+  session({
+    secret: "This is my secret",
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      httpOnly: true,
+    },
+  }),
+);
 
 // --- Basic Routes ---
 
@@ -50,11 +62,24 @@ app.post("/login", (req, res) => {
       const ok = await bcrypt.compare(password, user.password_hash);
       if (!ok) return res.status(401).send("Invalid credentials");
 
-      return res.send(
-        `Login successful. Welcome, ${user.username} (${user.role})`,
-      );
+      req.session.userId = user.id;
+      req.session.username = user.username;
+
+      return res.redirect("/dashboard");
     },
   );
+});
+
+app.get("/dashboard", (req, res) => {
+  if (!req.session.userId) {
+    return res.status(401).send("Not logged in");
+  }
+
+  res.send(`
+    <h2>Dashboard</h2>
+    <p>Welcome, ${req.session.username}</p>
+    <p>You are logged in via session.</p>
+  `);
 });
 
 app.listen(PORT, () => {
