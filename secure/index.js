@@ -4,6 +4,7 @@ const morgan = require("morgan");
 const db = require("./secure-db");
 const bcrypt = require("bcryptjs");
 const session = require("express-session");
+const rateLimit = require("express-rate-limit");
 
 const app = express();
 const PORT = 4000;
@@ -31,6 +32,12 @@ function requireLogin(req, res, next) {
   next();
 }
 
+const loginLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  max: 10,
+  message: "Too many login attempts. Try again later.",
+});
+
 // --- Basic Routes ---
 
 app.get("/", (req, res) => {
@@ -54,8 +61,16 @@ app.get("/login", (req, res) => {
   `);
 });
 
-app.post("/login", (req, res) => {
+app.post("/login", loginLimiter, (req, res) => {
   const { username, password } = req.body;
+
+  if (!username || !password) {
+    return res.status(400).send("Missing username or password");
+  }
+
+  if (username.length > 50 || password > 100) {
+    return res.status(400).send("Invalid input length");
+  }
 
   db.get(
     "SELECT * FROM users WHERE username = ?",
