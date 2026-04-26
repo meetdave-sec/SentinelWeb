@@ -5,9 +5,12 @@ const db = require("./secure-db");
 const bcrypt = require("bcryptjs");
 const session = require("express-session");
 const rateLimit = require("express-rate-limit");
+const helmet = require("helmet");
+const csurf = require("csurf");
 
 const app = express();
 const PORT = 4000;
+const csrfProtection = csurf();
 
 // --- Middleware ---
 
@@ -26,6 +29,9 @@ app.use(
     },
   }),
 );
+
+app.use(helmet());
+app.use(csrfProtection);
 
 function requireLogin(req, res, next) {
   if (!req.session.userId) return res.redirect("/login");
@@ -54,6 +60,7 @@ app.get("/login", (req, res) => {
   res.send(`
     <h2>Secure Login</h2>
     <form method="POST" action="/login">
+     <input type="hidden" name="_csrf" value="${req.csrfToken()}" />
       <label>Username: <input name="username" /></label><br/>
       <label>Password: <input type="password" name="password" /></label><br/>
       <button type="submit">Login</button>
@@ -103,6 +110,13 @@ app.get("/logout", (req, res) => {
     if (err) return res.status(500).send("Logut failed");
     return res.redirect("/login");
   });
+});
+
+app.use((err, req, res, next) => {
+  if (err.code === "EBADCSRFTOKEN") {
+    return res.status(403).send("Invalid CSRF token");
+  }
+  next(err);
 });
 
 app.listen(PORT, () => {
