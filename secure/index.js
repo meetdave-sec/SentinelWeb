@@ -7,9 +7,10 @@ const session = require("express-session");
 const rateLimit = require("express-rate-limit");
 const helmet = require("helmet");
 const csurf = require("csurf");
+require("dotenv").config();
 
 const app = express();
-const PORT = 4000;
+const PORT = process.env.PORT || 4000;
 const csrfProtection = csurf();
 
 // --- Middleware ---
@@ -21,13 +22,15 @@ app.use(express.json());
 
 app.use(
   session({
-    secret: "This is my secret",
+    secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-    },
-  }),
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production"
+    }
+  })
 );
 
 app.use(helmet());
