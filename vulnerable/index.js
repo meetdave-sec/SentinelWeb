@@ -67,4 +67,46 @@ app.post("/login", (req, res) => {
   });
 });
 
+app.get("/comments", (req, res) => {
+  db.all("SELECT content FROM comments", (err, rows) => {
+    if (err) {
+      console.error("DB error:", err);
+      return res.status(500).send("Internal Server Error");
+    }
+
+    const comments = rows.map(row => `<li>${row.content}</li>`).join("");
+
+    res.send(`
+      <h2>Comments</h2>
+
+      <form method="POST" action="/comments">
+        <input name="content" placeholder="Enter comment" />
+        <button type="submit">Post</button>
+      </form>
+
+      <h3>All Comments:</h3>
+      <ul>
+        ${comments}
+      </ul>
+    `);
+  });
+});
+
+app.post("/comments", (req, res) => {
+  const { content } = req.body;
+
+  const sql = `INSERT INTO comments (content) VALUES ('${content}')`;
+
+  console.log("[VULN COMMENT QUERY]", sql);
+  
+  db.run("INSERT INTO comments (content) VALUES (?)", [content], err => {
+    if (err) {
+      console.error("DB error:", err);
+      return res.status(500).send("Internal Server Error");
+    }
+
+    res.redirect("/comments");
+  });
+});
+
 app.listen(PORT, () => console.log("Server running on port 3000."));

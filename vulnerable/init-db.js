@@ -6,6 +6,7 @@ db.serialize(() => {
   console.log("[*] Resetting database...");
 
   db.run("DROP TABLE IF EXISTS users");
+  db.run("DROP TABLE IF EXISTS comments");
 
   db.run(`
     CREATE TABLE users (
@@ -16,7 +17,15 @@ db.serialize(() => {
     )
   `);
 
+  db.run(`
+    CREATE TABLE comments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    content TEXT
+    )
+    `);
+
   console.log("[*] Created users table.");
+  console.log("[*] Created comments table.");
 
   const insert = db.prepare(
     "INSERT INTO users (username, password, role) VALUES (?, ?, ?)",
