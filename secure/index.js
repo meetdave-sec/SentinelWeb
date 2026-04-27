@@ -22,93 +22,65 @@ const app = express();
 const PORT = process.env.PORT || 4000;
 const csrfProtection = csurf();
 
+/* ---------------- STYLES ---------------- */
+
 const styles = `
-  <style>
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      max-width: 600px;
-      margin: 40px auto;
-      padding: 0 20px;
-      background: #121212;
-      color: #f1f1f1;
-      line-height: 1.6;
-    }
-    h1, h2, h3 {
-      color: #4ecdc4;
-    }
-    a {
-      color: #ffb347;
-      text-decoration: none;
-    }
-    a:hover {
-      text-decoration: underline;
-    }
-    form {
-      background: #1f1f1f;
-      padding: 20px;
-      border-radius: 8px;
-      margin: 20px 0;
-    }
-    label {
-      display: block;
-      margin-bottom: 10px;
-    }
-    input {
-      width: 100%;
-      padding: 8px;
-      margin-top: 4px;
-      border: 1px solid #333;
-      border-radius: 4px;
-      background: #222;
-      color: #f1f1f1;
-    }
-    input:focus {
-      outline: none;
-      border-color: #4ecdc4;
-    }
-    button {
-      background: #4ecdc4;
-      color: #000;
-      border: none;
-      padding: 10px 20px;
-      border-radius: 4px;
-      cursor: pointer;
-      font-weight: 600;
-      margin-top: 8px;
-    }
-    button:hover {
-      background: #3bb3aa;
-    }
-    ul {
-      padding-left: 20px;
-    }
-    li {
-      margin-bottom: 8px;
-    }
-    .nav {
-      margin-top: 20px;
-    }
-  </style>
+<style>
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto;
+    max-width: 650px;
+    margin: 40px auto;
+    padding: 0 20px;
+    background: #121212;
+    color: #f1f1f1;
+  }
+  h1,h2,h3 { color:#4ecdc4; }
+  a { color:#ffb347; text-decoration:none; }
+  a:hover { text-decoration:underline; }
+  form, .card {
+    background:#1f1f1f;
+    padding:20px;
+    border-radius:8px;
+    margin:20px 0;
+  }
+  input {
+    width:100%;
+    padding:8px;
+    margin-top:4px;
+    border:1px solid #333;
+    background:#222;
+    color:#fff;
+  }
+  button {
+    margin-top:10px;
+    padding:10px;
+    background:#4ecdc4;
+    border:none;
+    cursor:pointer;
+  }
+  ul { padding-left:20px; }
+  .nav { margin-top:20px; }
+</style>
 `;
 
 const layout = content => `
-  <!DOCTYPE html>
-  <html lang="en">
-    <head>
-      <meta charset="UTF-8" />
-      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-      <title>Secure Web App</title>
-      ${styles}
-    </head>
-    <body>${content}</body>
-  </html>
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Secure App</title>
+${styles}
+</head>
+<body>
+${content}
+</body>
+</html>
 `;
 
-// --- Middleware ---
+/* ---------------- MIDDLEWARE ---------------- */
 
 app.use(morgan("dev"));
 app.use(express.urlencoded({ extended: true }));
-app.use(express.static(path.join(__dirname, "public")));
 app.use(express.json());
 
 app.use(
@@ -127,7 +99,6 @@ app.use(
 app.use(helmet());
 app.use(csrfProtection);
 
-// --- Helpers ---
 function requireLogin(req, res, next) {
   if (!req.session.userId) return res.redirect("/login");
   next();
@@ -136,19 +107,17 @@ function requireLogin(req, res, next) {
 const loginLimiter = rateLimit({
   windowMs: 10 * 60 * 1000,
   max: 10,
-  message: "Too many login attempts. Try again later.",
 });
 
-// --- Routes ---
+/* ---------------- ROUTES ---------------- */
 
 app.get("/", (req, res) => {
   res.send(
     layout(`
       <h1>Secure Web App</h1>
-      <p>This is the <strong>hardened</strong> version with proper security controls.</p>
       <ul>
-        <li><a href="/login">Login (secure)</a></li>
-        <li><a href="/comments">Comments (sanitized)</a></li>
+        <li><a href="/login">Login</a></li>
+        <li><a href="/comments">Comments</a></li>
       </ul>
     `),
   );
@@ -157,14 +126,13 @@ app.get("/", (req, res) => {
 app.get("/login", (req, res) => {
   res.send(
     layout(`
-      <h2>Secure Login</h2>
-      <form method="POST" action="/login">
-       <input type="hidden" name="_csrf" value="${req.csrfToken()}" />
-        <label>Username:<input name="username" /></label>
-        <label>Password:<input type="password" name="password" /></label>
-        <button type="submit">Login</button>
+      <h2>Login</h2>
+      <form method="POST">
+        <input type="hidden" name="_csrf" value="${req.csrfToken()}"/>
+        <label>Username<input name="username"/></label>
+        <label>Password<input type="password" name="password"/></label>
+        <button>Login</button>
       </form>
-      <p class="nav"><a href="/">← Home</a></p>
     `),
   );
 });
@@ -172,24 +140,14 @@ app.get("/login", (req, res) => {
 app.post("/login", loginLimiter, (req, res) => {
   const { username, password } = req.body;
 
-  if (!username || !password)
-    return res.status(400).send(layout(`
-  <h2>Login Failed</h2>
-  <p>Missing username or password</p>
-  <p><a href="/login">← Try again</a></p>
-  `));
-  if (username.length > 50 || password.length > 100)
-    return res.status(400).send("Invalid input length");
-
   db.get(
     "SELECT * FROM users WHERE username = ?",
     [username],
     async (err, user) => {
-      if (err) return res.status(500).send("Server error");
-      if (!user) return res.status(401).send("Invalid credentials");
+      if (!user) return res.send("Invalid credentials");
 
       const ok = await bcrypt.compare(password, user.password_hash);
-      if (!ok) return res.status(401).send("Invalid credentials");
+      if (!ok) return res.send("Invalid credentials");
 
       req.session.userId = user.id;
       req.session.username = user.username;
@@ -199,28 +157,68 @@ app.post("/login", loginLimiter, (req, res) => {
   );
 });
 
+app.get("/dashboard", requireLogin, (req, res) => {
+  res.send(
+    layout(`
+      <h2>Dashboard</h2>
+      <p>Welcome ${escapeHTML(req.session.username)}</p>
+
+      <ul>
+        <li><a href="/profile/${req.session.userId}">View My Profile</a></li>
+        <li><a href="/comments">Comments</a></li>
+      </ul>
+
+      <a href="/logout">Logout</a>
+    `),
+  );
+});
+
+app.get("/profile/:id", requireLogin, (req, res) => {
+  const id = parseInt(req.params.id);
+
+  // 🔒 IDOR protection
+  if (id !== req.session.userId) {
+    return res.status(403).send(
+      layout(`
+        <h2>403 Forbidden</h2>
+        <p>You cannot access this profile.</p>
+      `),
+    );
+  }
+
+  db.get(
+    "SELECT id, username, role, email FROM users WHERE id = ?",
+    [id],
+    (err, user) => {
+      res.send(
+        layout(`
+          <h2>My Profile</h2>
+          <div class="card">
+            <p>ID: ${user.id}</p>
+            <p>Username: ${escapeHTML(user.username)}</p>
+            <p>Email: ${escapeHTML(user.email)}</p>
+          </div>
+        `),
+      );
+    },
+  );
+});
+
 app.get("/comments", (req, res) => {
   db.all("SELECT content FROM comments", (err, rows) => {
-    if (err) {
-      console.error("DB error:", err);
-      return res.status(500).send(layout("<p>Internal Server Error</p>"));
-    }
-
-    const comments = rows
-      .map(row => `<li>${escapeHTML(row.content)}</li>`)
-      .join("");
+    const list = rows.map(r => `<li>${escapeHTML(r.content)}</li>`).join("");
 
     res.send(
       layout(`
-        <h2>Secure Comments</h2>
-        <form method="POST" action="/comments">
-          <input type="hidden" name="_csrf" value="${req.csrfToken()}" />
-          <input name="content" placeholder="Enter comment" />
-          <button type="submit">Post</button>
+        <h2>Comments</h2>
+
+        <form method="POST">
+          <input type="hidden" name="_csrf" value="${req.csrfToken()}"/>
+          <input name="content"/>
+          <button>Post</button>
         </form>
-        <h3>All Comments:</h3>
-        <ul>${comments || "<li><em>No comments yet.</em></li>"}</ul>
-        <p class="nav"><a href="/">← Home</a></p>
+
+        <ul>${list}</ul>
       `),
     );
   });
@@ -228,44 +226,22 @@ app.get("/comments", (req, res) => {
 
 app.post("/comments", (req, res) => {
   const { content } = req.body;
-  if (!content || content.length > 500)
-    return res.status(400).send("Invalid comment");
 
-  db.run("INSERT INTO comments (content) VALUES (?)", [content], err => {
-    if (err) {
-      console.error("DB error:", err);
-      return res.status(500).send("Internal Server Error");
-    }
+  db.run("INSERT INTO comments (content) VALUES (?)", [content], () => {
     res.redirect("/comments");
   });
 });
 
-app.get("/dashboard", requireLogin, (req, res) => {
-  res.send(
-    layout(`
-      <h2>Dashboard</h2>
-      <p>Welcome, <strong>${escapeHTML(req.session.username)}</strong></p>
-      <p><a href="/logout">Logout</a></p>
-      <p class="nav"><a href="/">← Home</a></p>
-    `),
-  );
-});
-
 app.get("/logout", (req, res) => {
-  req.session.destroy(err => {
-    if (err) return res.status(500).send("Logout failed");
-    res.redirect("/login");
-  });
+  req.session.destroy(() => res.redirect("/login"));
 });
 
-// --- Error Handling ---
 app.use((err, req, res, next) => {
   if (err.code === "EBADCSRFTOKEN") {
     return res.status(403).send("Invalid CSRF token");
   }
-  next(err);
 });
 
 app.listen(PORT, () => {
-  console.log(`Secure app listening on http://localhost:${PORT}`);
+  console.log("Secure app running on port", PORT);
 });
