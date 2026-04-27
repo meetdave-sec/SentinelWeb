@@ -1,3 +1,12 @@
+function escapeHTML(str) {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 const path = require("path");
 const express = require("express");
 const morgan = require("morgan");
@@ -28,9 +37,9 @@ app.use(
     cookie: {
       httpOnly: true,
       sameSite: "lax",
-      secure: process.env.NODE_ENV === "production"
-    }
-  })
+      secure: process.env.NODE_ENV === "production",
+    },
+  }),
 );
 
 app.use(helmet());
@@ -55,6 +64,7 @@ app.get("/", (req, res) => {
     <p>This is the <strong>hardened</strong> version with proper security controls.</p>
     <ul>
       <li><a href="/login">Login (secure)</a></li>
+      <li><a href="/comments">Comments (XSS target)</a></li>
     </ul>
   `);
 });
@@ -98,6 +108,51 @@ app.post("/login", loginLimiter, (req, res) => {
       return res.redirect("/dashboard");
     },
   );
+});
+
+app.get("/comments", (req, res) => {
+  db.all("SELECT content FROM comments", (err, rows) => {
+    if (err) {
+      console.error("DB error:", err);
+      return res.status(500).send("Internal Server Error");
+    }
+
+    const comments = rows
+      .map(row => `<li>${escapeHTML(row.content)}</li>`)
+      .join("");
+
+    res.send(`
+      <h2>Secure Comments</h2>
+
+      <form method="POST" action="/comments">
+        <input type="hidden" name="_csrf" value="${req.csrfToken()}" />
+        <input name="content" placeholder="Enter comment" />
+        <button type="submit">Post</button>
+      </form>
+
+      <h3>All Comments:</h3>
+      <ul>
+        ${comments}
+      </ul>
+    `);
+  });
+});
+
+app.post("/comments", (req, res) => {
+  const { content } = req.body;
+
+  if (!content || content.length > 500) {
+    return res.status(400).send("Invalid comment");
+  }
+
+  db.run("INSERT INTO comments (content) VALUES (?)", [content], err => {
+    if (err) {
+      console.error("DB error:", err);
+      return res.status(500).send("Internal Server Error");
+    }
+
+    res.redirect("/comments");
+  });
 });
 
 app.get("/dashboard", requireLogin, (req, res) => {

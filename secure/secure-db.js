@@ -11,6 +11,13 @@ db.serialize(() => {
       role TEXT NOT NULL
     )
   `);
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS comments (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      content TEXT NOT NULL
+    )
+  `);
 });
 
 module.exports = db;
