@@ -53,7 +53,7 @@ This project highlights both offensive exploitation and defensive engineering.
 
 #### Vulnerable
 
-ser input is directly embedded into the SQL query, allowing authentication bypass.
+User input is directly embedded into the SQL query, allowing authentication bypass.
 
 **Malicious Payload Used:**
 
