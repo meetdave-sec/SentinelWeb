@@ -13,7 +13,8 @@ db.serialize(() => {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       username TEXT UNIQUE NOT NULL,
       password TEXT NOT NULL,        -- INSECURE: plain-text password
-      role TEXT NOT NULL
+      role TEXT NOT NULL,
+      email TEXT NOT NULL
     )
   `);
 
@@ -28,12 +29,13 @@ db.serialize(() => {
   console.log("[*] Created comments table.");
 
   const insert = db.prepare(
-    "INSERT INTO users (username, password, role) VALUES (?, ?, ?)",
+    "INSERT INTO users (username, password, role, email) VALUES (?, ?, ?, ?)",
   );
 
-  insert.run("admin", "admin123", "admin"); // Intentionally weak
-  insert.run("alice", "password1", "user");
-  insert.run("bob", "qwerty123", "user");
+  insert.run("admin", "admin123", "admin", "admin@test.com");
+  insert.run("alice", "password1", "user", "alice@test.com");
+  insert.run("bob", "qwerty123", "user", "bob@test.com");
+
 
   insert.finalize();
 
