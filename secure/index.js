@@ -144,10 +144,24 @@ app.post("/login", loginLimiter, (req, res) => {
     "SELECT * FROM users WHERE username = ?",
     [username],
     async (err, user) => {
-      if (!user) return res.send("Invalid credentials");
+      if (!user)
+        return res.send(
+          layout(`
+          <h2>Login Failed</h2>
+          <p>Invalid username or password.</p>
+          <p><a href="/login">← Try again</a></p>
+        `),
+        );
 
       const ok = await bcrypt.compare(password, user.password_hash);
-      if (!ok) return res.send("Invalid credentials");
+      if (!ok)
+        return res.send(
+          layout(`
+          <h2>Login Failed</h2>
+          <p>Invalid username or password.</p>
+          <p><a href="/login">← Try again</a></p>
+        `),
+        );
 
       req.session.userId = user.id;
       req.session.username = user.username;
